@@ -7,9 +7,9 @@ const initModels = async () => {
     console.log('Conexión a PostgreSQL establecida correctamente.');
     
     // Sincronizar todos los modelos
-    // force: true -> Elimina y recrea las tablas para garantizar consistencia
-    // IMPORTANTE: Solo usar en desarrollo, NO en producción
-    await sequelize.sync({ force: true });
+    // force: false -> Mantiene las tablas existentes
+    // IMPORTANTE: Usar force: true solo cuando sea necesario recrear las tablas
+    await sequelize.sync({ force: false });
     console.log('Tablas sincronizadas correctamente');
   } catch (error) {
     console.error('Error al conectar con PostgreSQL:', error);

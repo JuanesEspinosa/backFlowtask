@@ -85,105 +85,71 @@ const updateUser = async (req, res) => {
   }
 };
 
-// Eliminar un usuario
-const deleteUser = async (req, res) => {
-  const t = await sequelize.transaction();
+// Desactivar un usuario
+const deactivateUser = async (req, res) => {
+  const { id } = req.params;
+  const transaction = await sequelize.transaction();
 
   try {
-    const userId = req.params.id;
-    const user = await User.findByPk(userId);
-    
+    const user = await User.findByPk(id);
+    if (!user) {
+      await transaction.rollback();
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    // Desactivar todos los tableros del usuario
+    const boards = await Board.findAll({ where: { ownerId: id } });
+    for (const board of boards) {
+      await board.update({ status: 'inactive' }, { transaction });
+    }
+
+    // Desactivar membresías
+    await BoardMember.update(
+      { status: 'inactive' },
+      { where: { userId: id }, transaction }
+    );
+
+    // Desactivar usuario
+    await user.update({ status: 'inactive' }, { transaction });
+
+    await transaction.commit();
+    res.json({ 
+      message: 'Usuario desactivado correctamente',
+      details: {
+        userId: id,
+        status: 'inactive',
+        boardsDeactivated: boards.length
+      }
+    });
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Error al desactivar usuario:', error);
+    res.status(500).json({ message: 'Error al desactivar usuario' });
+  }
+};
+
+// Reactivar un usuario
+const reactivateUser = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
 
-    // Obtener todos los tableros donde el usuario es propietario
-    const ownedBoards = await Board.findAll({
-      where: { owner_id: userId }
-    });
-
-    // Para cada tablero, buscar un nuevo propietario
-    for (const board of ownedBoards) {
-      // Buscar el siguiente administrador del tablero
-      const nextAdmin = await BoardMember.findOne({
-        where: {
-          board_id: board.id,
-          user_id: { [sequelize.Op.ne]: userId }, // No seleccionar al usuario actual
-          role: 'admin'
-        }
-      });
-
-      if (nextAdmin) {
-        // Si hay un administrador, transferirle la propiedad
-        await BoardMember.update(
-          { role: 'owner' },
-          { 
-            where: { id: nextAdmin.id },
-            transaction: t
-          }
-        );
-        await Board.update(
-          { owner_id: nextAdmin.user_id },
-          { 
-            where: { id: board.id },
-            transaction: t
-          }
-        );
-      } else {
-        // Si no hay administrador, buscar cualquier miembro
-        const nextMember = await BoardMember.findOne({
-          where: {
-            board_id: board.id,
-            user_id: { [sequelize.Op.ne]: userId }
-          }
-        });
-
-        if (nextMember) {
-          // Si hay un miembro, convertirlo en propietario
-          await BoardMember.update(
-            { role: 'owner' },
-            { 
-              where: { id: nextMember.id },
-              transaction: t
-            }
-          );
-          await Board.update(
-            { owner_id: nextMember.user_id },
-            { 
-              where: { id: board.id },
-              transaction: t
-            }
-          );
-        } else {
-          // Si no hay más miembros, eliminar el tablero
-          await board.destroy({ transaction: t });
-        }
-      }
-    }
-
-    // Eliminar todas las membresías del usuario
-    await BoardMember.destroy({
-      where: { user_id: userId },
-      transaction: t
-    });
-
-    // Finalmente, eliminar el usuario
-    await user.destroy({ transaction: t });
-
-    await t.commit();
+    await user.update({ status: 'active' });
     res.json({ 
-      message: 'Usuario eliminado correctamente',
-      details: {
-        boardsTransferred: ownedBoards.length,
-        userDeleted: true
+      message: 'Usuario reactivado correctamente',
+      user: {
+        id: user.id,
+        email: user.email,
+        status: user.status
       }
     });
   } catch (error) {
-    await t.rollback();
-    res.status(500).json({ 
-      message: 'Error al eliminar usuario', 
-      error: error.message 
-    });
+    console.error('Error al reactivar usuario:', error);
+    res.status(500).json({ message: 'Error al reactivar usuario' });
   }
 };
 
@@ -192,5 +158,6 @@ module.exports = {
   getUserById,
   createUser,
   updateUser,
-  deleteUser
+  deactivateUser,
+  reactivateUser
 }; 

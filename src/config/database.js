@@ -23,7 +23,7 @@ const connectDB = async () => {
     console.log('Conexión a PostgreSQL establecida correctamente.');
     
     // Sincronizar todos los modelos
-    await sequelize.sync({ force: true }); // force: true eliminará las tablas existentes
+    await sequelize.sync({ force: true }); // force: false mantendrá las tablas existentes
     console.log('Tablas sincronizadas correctamente');
   } catch (error) {
     console.error('Error al conectar con PostgreSQL:', error);

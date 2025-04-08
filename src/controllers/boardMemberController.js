@@ -52,6 +52,7 @@ const addBoardMember = async (req, res) => {
       return res.status(400).json({ message: 'El usuario ya es miembro del tablero' });
     }
 
+    // Crear un nuevo miembro del tablero
     const member = await BoardMember.create({
       board_id,
       user_id,

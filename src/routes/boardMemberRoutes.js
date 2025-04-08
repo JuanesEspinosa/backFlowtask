@@ -7,7 +7,7 @@ const boardMemberController = require('../controllers/boardMemberController');
 // obtener todos los miembros de un tablero
 router.get('/board/:boardId', boardMemberController.getBoardMembers);
 // agregar un miembro a un tablero
-router.post('/:boardId', boardMemberController.addBoardMember);
+router.post('/', boardMemberController.addBoardMember);
 // actualizar el rol de un miembro de un tablero
 router.put('/:boardId/:userId', boardMemberController.updateMemberRole);
 // eliminar un miembro de un tablero
