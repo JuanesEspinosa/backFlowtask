@@ -1,5 +1,8 @@
 const User = require('../models/User');
+const Board = require('../models/Board');
+const BoardMember = require('../models/BoardMember');
 const bcrypt = require('bcrypt');
+const { sequelize } = require('../config/database');
 
 // Obtener todos los usuarios
 const getUsers = async (req, res) => {
@@ -84,16 +87,103 @@ const updateUser = async (req, res) => {
 
 // Eliminar un usuario
 const deleteUser = async (req, res) => {
+  const t = await sequelize.transaction();
+
   try {
-    const user = await User.findByPk(req.params.id);
+    const userId = req.params.id;
+    const user = await User.findByPk(userId);
+    
     if (!user) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
 
-    await user.destroy();
-    res.json({ message: 'Usuario eliminado correctamente' });
+    // Obtener todos los tableros donde el usuario es propietario
+    const ownedBoards = await Board.findAll({
+      where: { owner_id: userId }
+    });
+
+    // Para cada tablero, buscar un nuevo propietario
+    for (const board of ownedBoards) {
+      // Buscar el siguiente administrador del tablero
+      const nextAdmin = await BoardMember.findOne({
+        where: {
+          board_id: board.id,
+          user_id: { [sequelize.Op.ne]: userId }, // No seleccionar al usuario actual
+          role: 'admin'
+        }
+      });
+
+      if (nextAdmin) {
+        // Si hay un administrador, transferirle la propiedad
+        await BoardMember.update(
+          { role: 'owner' },
+          { 
+            where: { id: nextAdmin.id },
+            transaction: t
+          }
+        );
+        await Board.update(
+          { owner_id: nextAdmin.user_id },
+          { 
+            where: { id: board.id },
+            transaction: t
+          }
+        );
+      } else {
+        // Si no hay administrador, buscar cualquier miembro
+        const nextMember = await BoardMember.findOne({
+          where: {
+            board_id: board.id,
+            user_id: { [sequelize.Op.ne]: userId }
+          }
+        });
+
+        if (nextMember) {
+          // Si hay un miembro, convertirlo en propietario
+          await BoardMember.update(
+            { role: 'owner' },
+            { 
+              where: { id: nextMember.id },
+              transaction: t
+            }
+          );
+          await Board.update(
+            { owner_id: nextMember.user_id },
+            { 
+              where: { id: board.id },
+              transaction: t
+            }
+          );
+        } else {
+          // Si no hay más miembros, eliminar el tablero
+          await board.destroy({ transaction: t });
+        }
+      }
+    }
+
+    // Eliminar todas las membresías del usuario
+    await BoardMember.destroy({
+      where: { user_id: userId },
+      transaction: t
+    });
+
+    // Finalmente, eliminar el usuario
+    await user.destroy({ transaction: t });
+
+    await t.commit();
+    res.json({ 
+      message: 'Usuario eliminado correctamente',
+      details: {
+        boardsTransferred: ownedBoards.length,
+        userDeleted: true
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error al eliminar usuario', error: error.message });
+    await t.rollback();
+    res.status(500).json({ 
+      message: 'Error al eliminar usuario', 
+      error: error.message 
+    });
   }
 };
 

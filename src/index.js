@@ -5,6 +5,8 @@ require('dotenv').config();
 const { initModels } = require('./models');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
+const boardRoutes = require('./routes/boardRoutes');
+const boardMemberRoutes = require('./routes/boardMemberRoutes');
 
 const app = express();
 
@@ -27,6 +29,12 @@ app.use('/api/users', userRoutes);
 
 // Rutas de autenticación
 app.use('/api/auth', authRoutes);
+
+// Rutas de tableros
+app.use('/api/boards', boardRoutes);
+
+// Rutas de miembros del tablero
+app.use('/api/board-members', boardMemberRoutes);
 
 // Puerto
 const PORT = process.env.PORT || 3000;
