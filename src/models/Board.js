@@ -19,6 +19,7 @@ const Board = sequelize.define('Board', {
   owner_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    field: 'owner_id',
     references: {
       model: 'users',
       key: 'id'
@@ -26,7 +27,7 @@ const Board = sequelize.define('Board', {
     onDelete: 'SET NULL'
   },
   visibility: {
-    type: DataTypes.ENUM('private', 'public'),
+    type: DataTypes.ENUM('public', 'private'),
     defaultValue: 'private',
     allowNull: false
   },

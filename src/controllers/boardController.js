@@ -1,13 +1,20 @@
 const Board = require('../models/Board');
 const BoardMember = require('../models/BoardMember');
 const User = require('../models/User');
+const List = require('../models/List');
+const { sequelize } = require('../config/database');
 
 // Obtener todos los tableros
 const getBoards = async (req, res) => {
   try {
     const boards = await Board.findAll({
       include: [
-        { model: User, as: 'owner', attributes: ['id', 'full_name', 'email', 'avatar'] }
+        { 
+          model: User, 
+          as: 'boardOwner', 
+          attributes: ['id', 'full_name', 'email', 'avatar'],
+          where: { is_active: true }
+        }
       ]
     });
     res.json(boards);
@@ -21,13 +28,28 @@ const getBoardById = async (req, res) => {
   try {
     const board = await Board.findByPk(req.params.id, {
       include: [
-        { model: User, as: 'owner', attributes: ['id', 'full_name', 'email', 'avatar'] },
+        { 
+          model: User, 
+          as: 'boardOwner', 
+          attributes: ['id', 'full_name', 'email', 'avatar'],
+          where: { is_active: true }
+        },
         { 
           model: BoardMember, 
-          as: 'members',
+          as: 'boardMemberships',
           include: [
-            { model: User, as: 'user', attributes: ['id', 'full_name', 'email', 'avatar'] }
+            { 
+              model: User, 
+              as: 'memberUser', 
+              attributes: ['id', 'full_name', 'email', 'avatar'],
+              where: { is_active: true }
+            }
           ]
+        },
+        {
+          model: List,
+          as: 'lists',
+          order: [['position', 'ASC']]
         }
       ]
     });
@@ -43,6 +65,8 @@ const getBoardById = async (req, res) => {
 
 // Crear un nuevo tablero
 const createBoard = async (req, res) => {
+  const transaction = await sequelize.transaction();
+
   try {
     const { name, description, visibility, owner_id } = req.body;
     
@@ -60,23 +84,41 @@ const createBoard = async (req, res) => {
       description,
       visibility: visibility || 'private',
       owner_id
-    });
+    }, { transaction });
 
     // Crear el registro de miembro para el propietario
     await BoardMember.create({
       board_id: board.id,
       user_id: owner_id,
       role: 'owner'
-    });
+    }, { transaction });
+
+    // Crear listas por defecto
+    const defaultLists = [
+      { name: 'Por hacer', position: 0 },
+      { name: 'En progreso', position: 1 },
+      { name: 'Completado', position: 2 }
+    ];
+
+    await Promise.all(defaultLists.map(list => 
+      List.create({
+        ...list,
+        board_id: board.id
+      }, { transaction })
+    ));
 
     const boardWithDetails = await Board.findByPk(board.id, {
       include: [
-        { model: User, as: 'owner', attributes: ['id', 'full_name', 'email', 'avatar'] }
-      ]
+        { model: User, as: 'boardOwner', attributes: ['id', 'full_name', 'email', 'avatar'] },
+        { model: List, as: 'lists', order: [['position', 'ASC']] }
+      ],
+      transaction
     });
 
+    await transaction.commit();
     res.status(201).json(boardWithDetails);
   } catch (error) {
+    await transaction.rollback();
     res.status(500).json({ message: 'Error al crear tablero', error: error.message });
   }
 };
@@ -104,7 +146,7 @@ const updateBoard = async (req, res) => {
     
     const updatedBoard = await Board.findByPk(board.id, {
       include: [
-        { model: User, as: 'owner', attributes: ['id', 'full_name', 'email', 'avatar'] }
+        { model: User, as: 'boardOwner', attributes: ['id', 'full_name', 'email', 'avatar'] }
       ]
     });
 
@@ -136,12 +178,25 @@ const getBoardsByUser = async (req, res) => {
     const userId = req.params.userId;
     const boards = await Board.findAll({
       include: [
-        { model: User, as: 'owner', attributes: ['id', 'full_name', 'email', 'avatar'] },
+        { 
+          model: User, 
+          as: 'boardOwner', 
+          attributes: ['id', 'full_name', 'email', 'avatar'],
+          where: { is_active: true }
+        },
         {
           model: BoardMember,
-          as: 'members',
+          as: 'boardMemberships',
           where: { user_id: userId },
-          required: true
+          required: true,
+          include: [
+            { 
+              model: User, 
+              as: 'memberUser', 
+              attributes: ['id', 'full_name', 'email', 'avatar'],
+              where: { is_active: true }
+            }
+          ]
         }
       ]
     });

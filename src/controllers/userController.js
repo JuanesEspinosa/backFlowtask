@@ -98,7 +98,10 @@ const deactivateUser = async (req, res) => {
     }
 
     // Desactivar todos los tableros del usuario
-    const boards = await Board.findAll({ where: { ownerId: id } });
+    const boards = await Board.findAll({ 
+      where: { owner_id: id }
+    });
+    
     for (const board of boards) {
       await board.update({ status: 'inactive' }, { transaction });
     }
@@ -106,18 +109,18 @@ const deactivateUser = async (req, res) => {
     // Desactivar membresías
     await BoardMember.update(
       { status: 'inactive' },
-      { where: { userId: id }, transaction }
+      { where: { user_id: id }, transaction }
     );
 
     // Desactivar usuario
-    await user.update({ status: 'inactive' }, { transaction });
+    await user.update({ is_active: false }, { transaction });
 
     await transaction.commit();
     res.json({ 
       message: 'Usuario desactivado correctamente',
       details: {
         userId: id,
-        status: 'inactive',
+        is_active: false,
         boardsDeactivated: boards.length
       }
     });
@@ -138,13 +141,13 @@ const reactivateUser = async (req, res) => {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
 
-    await user.update({ status: 'active' });
+    await user.update({ is_active: true });
     res.json({ 
       message: 'Usuario reactivado correctamente',
       user: {
         id: user.id,
         email: user.email,
-        status: user.status
+        is_active: true
       }
     });
   } catch (error) {
