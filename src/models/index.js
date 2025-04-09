@@ -1,4 +1,4 @@
-const { sequelize } = require('../config/database');
+const { sequelize, fixSequences } = require('../config/database');
 const User = require('./User');
 const Board = require('./Board');
 const BoardMember = require('./BoardMember');
@@ -9,11 +9,11 @@ const initModels = async () => {
     await sequelize.authenticate();
     console.log('Conexión a PostgreSQL establecida correctamente.');
     
-    // Sincronizar todos los modelos excepto List
+    // Sincronizar todos los modelos
     await sequelize.sync({ force: false });
     
-    // Forzar la recreación de la tabla lists
-    await List.sync({ force: true });
+    // Corregir secuencias de autoincremento
+    await fixSequences();
     
     console.log('Tablas sincronizadas correctamente');
 
