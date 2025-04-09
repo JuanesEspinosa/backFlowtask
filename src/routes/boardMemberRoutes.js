@@ -1,16 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const boardMemberController = require('../controllers/boardMemberController');
+const {
+  getBoardMembers,
+  addMemberToBoard,
+  updateMemberRole,
+  removeMember
+} = require('../controllers/boardMemberController');
 
 // Rutas para miembros del tablero
 
 // obtener todos los miembros de un tablero
-router.get('/board/:boardId', boardMemberController.getBoardMembers);
+router.get('/board/:boardId', getBoardMembers);
 // agregar un miembro a un tablero
-router.post('/', boardMemberController.addBoardMember);
+router.post('/', addMemberToBoard);
 // actualizar el rol de un miembro de un tablero
-router.put('/:boardId/:userId', boardMemberController.updateMemberRole);
+router.put('/:id', updateMemberRole);
 // eliminar un miembro de un tablero
-router.delete('/:boardId/:userId', boardMemberController.removeBoardMember);
+router.delete('/:id', removeMember);
 
 module.exports = router; 

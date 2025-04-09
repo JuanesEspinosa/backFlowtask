@@ -12,13 +12,26 @@ const getBoards = async (req, res) => {
         { 
           model: User, 
           as: 'boardOwner', 
-          attributes: ['id', 'full_name', 'email', 'avatar'],
-          where: { is_active: true }
+          attributes: ['id', 'full_name', 'email', 'avatar']
+        },
+        {
+          model: BoardMember,
+          as: 'boardMemberships',
+          include: [{
+            model: User,
+            as: 'memberUser',
+            attributes: ['id', 'full_name', 'email', 'avatar']
+          }]
+        },
+        {
+          model: List,
+          as: 'lists'
         }
       ]
     });
     res.json(boards);
   } catch (error) {
+    console.error('Error al obtener tableros:', error);
     res.status(500).json({ message: 'Error al obtener tableros', error: error.message });
   }
 };
@@ -31,20 +44,16 @@ const getBoardById = async (req, res) => {
         { 
           model: User, 
           as: 'boardOwner', 
-          attributes: ['id', 'full_name', 'email', 'avatar'],
-          where: { is_active: true }
+          attributes: ['id', 'full_name', 'email', 'avatar']
         },
-        { 
-          model: BoardMember, 
+        {
+          model: BoardMember,
           as: 'boardMemberships',
-          include: [
-            { 
-              model: User, 
-              as: 'memberUser', 
-              attributes: ['id', 'full_name', 'email', 'avatar'],
-              where: { is_active: true }
-            }
-          ]
+          include: [{
+            model: User,
+            as: 'memberUser',
+            attributes: ['id', 'full_name', 'email', 'avatar']
+          }]
         },
         {
           model: List,
@@ -53,12 +62,14 @@ const getBoardById = async (req, res) => {
         }
       ]
     });
-    
+
     if (!board) {
       return res.status(404).json({ message: 'Tablero no encontrado' });
     }
+
     res.json(board);
   } catch (error) {
+    console.error('Error al obtener tablero:', error);
     res.status(500).json({ message: 'Error al obtener tablero', error: error.message });
   }
 };

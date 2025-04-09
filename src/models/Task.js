@@ -3,9 +3,9 @@ const { sequelize } = require('../config/database');
 
 const Task = sequelize.define('Task', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
   title: {
     type: DataTypes.STRING,
@@ -29,7 +29,7 @@ const Task = sequelize.define('Task', {
     defaultValue: 0
   },
   list_id: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'lists',

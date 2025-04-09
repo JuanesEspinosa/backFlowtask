@@ -3,6 +3,7 @@ const User = require('./User');
 const Board = require('./Board');
 const BoardMember = require('./BoardMember');
 const List = require('./List');
+const Task = require('./Task');
 
 const initModels = async () => {
   try {
@@ -11,10 +12,6 @@ const initModels = async () => {
     
     // Sincronizar todos los modelos
     await sequelize.sync({ force: false });
-    
-    // Corregir secuencias de autoincremento
-    await fixSequences();
-    
     console.log('Tablas sincronizadas correctamente');
 
     // Asociaciones User - Board (a través de owner_id)
@@ -42,21 +39,21 @@ const initModels = async () => {
     });
 
     // Asociaciones Board - BoardMember
-    Board.hasMany(BoardMember, { 
+    Board.hasMany(BoardMember, {
       foreignKey: 'board_id',
       as: 'boardMemberships'
     });
-    BoardMember.belongsTo(Board, { 
+    BoardMember.belongsTo(Board, {
       foreignKey: 'board_id',
       as: 'parentBoard'
     });
 
     // Asociaciones User - BoardMember
-    User.hasMany(BoardMember, { 
+    User.hasMany(BoardMember, {
       foreignKey: 'user_id',
       as: 'userMemberships'
     });
-    BoardMember.belongsTo(User, { 
+    BoardMember.belongsTo(User, {
       foreignKey: 'user_id',
       as: 'memberUser'
     });
@@ -71,9 +68,22 @@ const initModels = async () => {
       as: 'parentBoard'
     });
 
+    // Asociaciones List - Task
+    List.hasMany(Task, {
+      foreignKey: 'list_id',
+      as: 'tasks'
+    });
+    Task.belongsTo(List, {
+      foreignKey: 'list_id',
+      as: 'parentList'
+    });
+
+    // Corregir secuencias después de crear las tablas
+    await fixSequences();
+    
     console.log('Asociaciones configuradas correctamente');
   } catch (error) {
-    console.error('Error al conectar con PostgreSQL:', error);
+    console.error('Error al inicializar modelos:', error);
     process.exit(1);
   }
 };
@@ -84,5 +94,6 @@ module.exports = {
   Board,
   BoardMember,
   List,
+  Task,
   initModels
 }; 

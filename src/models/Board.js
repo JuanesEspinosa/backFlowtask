@@ -31,9 +31,9 @@ const Board = sequelize.define('Board', {
     defaultValue: 'private',
     allowNull: false
   },
-  status: {
-    type: DataTypes.ENUM('active', 'inactive'),
-    defaultValue: 'active',
+  is_active: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
     allowNull: false
   },
   created_at: {
