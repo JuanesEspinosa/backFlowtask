@@ -1,99 +1,137 @@
-const { sequelize, fixSequences } = require('../config/database');
+const { sequelize } = require('../config/database');
 const User = require('./User');
 const Board = require('./Board');
-const BoardMember = require('./BoardMember');
 const List = require('./List');
 const Task = require('./Task');
+const Tag = require('./Tag');
+const TaskComment = require('./TaskComment');
+const TaskAssignment = require('./TaskAssignment');
 
-const initModels = async () => {
+// Asociaciones entre modelos
+const initModels = () => {
+  // Usuario - Tablero (creador)
+  User.hasMany(Board, {
+    foreignKey: 'creator_id',
+    as: 'createdBoards'
+  });
+  Board.belongsTo(User, {
+    foreignKey: 'creator_id',
+    as: 'creator'
+  });
+
+  // Usuario - Tablero (miembros)
+  User.belongsToMany(Board, {
+    through: 'board_members',
+    foreignKey: 'user_id',
+    otherKey: 'board_id',
+    as: 'memberOfBoards'
+  });
+  Board.belongsToMany(User, {
+    through: 'board_members',
+    foreignKey: 'board_id',
+    otherKey: 'user_id',
+    as: 'boardMembers'
+  });
+
+  // Tablero - Lista
+  Board.hasMany(List, {
+    foreignKey: 'board_id',
+    as: 'lists'
+  });
+  List.belongsTo(Board, {
+    foreignKey: 'board_id',
+    as: 'board'
+  });
+
+  // Lista - Tarea
+  List.hasMany(Task, {
+    foreignKey: 'list_id',
+    as: 'tasks'
+  });
+  Task.belongsTo(List, {
+    foreignKey: 'list_id',
+    as: 'list'
+  });
+
+  // Usuario - Tarea (asignaciones)
+  User.belongsToMany(Task, {
+    through: TaskAssignment,
+    foreignKey: 'user_id',
+    otherKey: 'task_id',
+    as: 'assignedTasks'
+  });
+  Task.belongsToMany(User, {
+    through: TaskAssignment,
+    foreignKey: 'task_id',
+    otherKey: 'user_id',
+    as: 'assignedUsers'
+  });
+
+  // Tarea - Etiqueta
+  Task.belongsToMany(Tag, {
+    through: 'task_tags',
+    foreignKey: 'task_id',
+    otherKey: 'tag_id',
+    as: 'tags'
+  });
+  Tag.belongsToMany(Task, {
+    through: 'task_tags',
+    foreignKey: 'tag_id',
+    otherKey: 'task_id',
+    as: 'taggedTasks'
+  });
+
+  // Tarea - Comentario
+  Task.hasMany(TaskComment, {
+    foreignKey: 'task_id',
+    as: 'comments'
+  });
+  TaskComment.belongsTo(Task, {
+    foreignKey: 'task_id',
+    as: 'parentTask'
+  });
+
+  // Usuario - Comentario
+  User.hasMany(TaskComment, {
+    foreignKey: 'user_id',
+    as: 'userComments'
+  });
+  TaskComment.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'author'
+  });
+};
+
+// Sincronizar modelos con la base de datos
+const syncModels = async () => {
   try {
-    await sequelize.authenticate();
-    console.log('Conexión a PostgreSQL establecida correctamente.');
-    
-    // Sincronizar todos los modelos
-    await sequelize.sync({ force: false });
+    await sequelize.sync({ alter: true });
     console.log('Tablas sincronizadas correctamente');
+  } catch (error) {
+    console.error('Error al sincronizar tablas:', error);
+    throw error;
+  }
+};
 
-    // Asociaciones User - Board (a través de owner_id)
-    User.hasMany(Board, { 
-      foreignKey: 'owner_id',
-      as: 'ownedBoards' 
-    });
-    Board.belongsTo(User, { 
-      foreignKey: 'owner_id',
-      as: 'boardOwner'
-    });
-
-    // Asociaciones User - Board (a través de BoardMember)
-    User.belongsToMany(Board, { 
-      through: BoardMember,
-      foreignKey: 'user_id',
-      otherKey: 'board_id',
-      as: 'memberInBoards'
-    });
-    Board.belongsToMany(User, { 
-      through: BoardMember,
-      foreignKey: 'board_id',
-      otherKey: 'user_id',
-      as: 'memberUsers'
-    });
-
-    // Asociaciones Board - BoardMember
-    Board.hasMany(BoardMember, {
-      foreignKey: 'board_id',
-      as: 'boardMemberships'
-    });
-    BoardMember.belongsTo(Board, {
-      foreignKey: 'board_id',
-      as: 'parentBoard'
-    });
-
-    // Asociaciones User - BoardMember
-    User.hasMany(BoardMember, {
-      foreignKey: 'user_id',
-      as: 'userMemberships'
-    });
-    BoardMember.belongsTo(User, {
-      foreignKey: 'user_id',
-      as: 'memberUser'
-    });
-
-    // Asociaciones Board - List
-    Board.hasMany(List, {
-      foreignKey: 'board_id',
-      as: 'lists'
-    });
-    List.belongsTo(Board, {
-      foreignKey: 'board_id',
-      as: 'parentBoard'
-    });
-
-    // Asociaciones List - Task
-    List.hasMany(Task, {
-      foreignKey: 'list_id',
-      as: 'tasks'
-    });
-    Task.belongsTo(List, {
-      foreignKey: 'list_id',
-      as: 'parentList'
-    });
-
-    // Corregir secuencias después de crear las tablas
-    await fixSequences();
-    
-    console.log('Asociaciones configuradas correctamente');
+// Inicializar la aplicación
+const initApp = async () => {
+  try {
+    await syncModels();
+    initModels();
+    console.log('Modelos inicializados correctamente');
   } catch (error) {
     console.error('Error al inicializar modelos:', error);
-    process.exit(1);
+    throw error;
   }
 };
 
 module.exports = {
-  sequelize,
+  initApp,
   User,
   Board,
-  BoardMember,
   List,
   Task,
-  initModels
+  Tag,
+  TaskComment,
+  TaskAssignment
 }; 

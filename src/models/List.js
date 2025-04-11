@@ -7,7 +7,7 @@ const List = sequelize.define('List', {
     primaryKey: true,
     autoIncrement: true
   },
-  name: {
+  title: {
     type: DataTypes.STRING,
     allowNull: false
   },
@@ -19,18 +19,23 @@ const List = sequelize.define('List', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'boards',
+      model: 'Boards',
       key: 'id'
     }
   },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
+  },
+  updated_at: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   }
 }, {
-  tableName: 'lists',
-  timestamps: false,
-  underscored: true
+  tableName: 'Lists',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
 });
 
 module.exports = List; 

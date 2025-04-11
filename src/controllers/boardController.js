@@ -1,227 +1,293 @@
 const Board = require('../models/Board');
-const BoardMember = require('../models/BoardMember');
 const User = require('../models/User');
-const List = require('../models/List');
 const { sequelize } = require('../config/database');
 
 // Obtener todos los tableros
-const getBoards = async (req, res) => {
+const getAllBoards = async (req, res) => {
   try {
+    console.log('Iniciando búsqueda de tableros...');
+    
     const boards = await Board.findAll({
       include: [
-        { 
-          model: User, 
-          as: 'boardOwner', 
-          attributes: ['id', 'full_name', 'email', 'avatar']
+        {
+          model: User,
+          as: 'boardCreator',
+          attributes: ['id', 'full_name', 'email']
         },
         {
-          model: BoardMember,
-          as: 'boardMemberships',
-          include: [{
-            model: User,
-            as: 'memberUser',
-            attributes: ['id', 'full_name', 'email', 'avatar']
-          }]
-        },
-        {
-          model: List,
-          as: 'lists'
+          model: User,
+          as: 'boardMembers',
+          attributes: ['id', 'full_name', 'email'],
+          through: { attributes: [] }
         }
-      ]
+      ],
+      order: [['id', 'ASC']]
     });
-    res.json(boards);
+    
+    console.log(`Se encontraron ${boards.length} tableros`);
+    
+    if (boards.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No hay tableros disponibles',
+        data: []
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Tableros obtenidos correctamente',
+      data: boards
+    });
   } catch (error) {
     console.error('Error al obtener tableros:', error);
-    res.status(500).json({ message: 'Error al obtener tableros', error: error.message });
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener tableros',
+      error: error.message
+    });
   }
 };
 
 // Obtener un tablero por ID
 const getBoardById = async (req, res) => {
   try {
-    const board = await Board.findByPk(req.params.id, {
+    const { id } = req.params;
+    console.log(`Buscando tablero con ID: ${id}`);
+    
+    const board = await Board.findByPk(id, {
       include: [
-        { 
-          model: User, 
-          as: 'boardOwner', 
-          attributes: ['id', 'full_name', 'email', 'avatar']
+        {
+          model: User,
+          as: 'boardCreator',
+          attributes: ['id', 'full_name', 'email']
         },
         {
-          model: BoardMember,
-          as: 'boardMemberships',
-          include: [{
-            model: User,
-            as: 'memberUser',
-            attributes: ['id', 'full_name', 'email', 'avatar']
-          }]
-        },
-        {
-          model: List,
-          as: 'lists',
-          order: [['position', 'ASC']]
+          model: User,
+          as: 'boardMembers',
+          attributes: ['id', 'full_name', 'email'],
+          through: { attributes: [] }
         }
       ]
     });
-
+    
     if (!board) {
-      return res.status(404).json({ message: 'Tablero no encontrado' });
+      console.log(`No se encontró el tablero con ID: ${id}`);
+      return res.status(404).json({
+        success: false,
+        message: 'Tablero no encontrado'
+      });
     }
-
-    res.json(board);
+    
+    console.log(`Tablero encontrado: ${board.title}`);
+    res.json({
+      success: true,
+      message: 'Tablero obtenido correctamente',
+      data: board
+    });
   } catch (error) {
     console.error('Error al obtener tablero:', error);
-    res.status(500).json({ message: 'Error al obtener tablero', error: error.message });
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener el tablero',
+      error: error.message
+    });
   }
 };
 
 // Crear un nuevo tablero
 const createBoard = async (req, res) => {
   const transaction = await sequelize.transaction();
-
+  
   try {
-    const { name, description, visibility, owner_id } = req.body;
+    const { title, name, description, creator_id, member_ids } = req.body;
+    console.log('Datos recibidos:', { title, name, description, creator_id, member_ids });
     
-    // Validaciones básicas
-    if (!name) {
-      return res.status(400).json({ message: 'El nombre es requerido' });
+    // Verificar si el creador existe
+    const creator = await User.findByPk(creator_id);
+    if (!creator) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario creador no encontrado'
+      });
     }
     
-    if (visibility && !['private', 'public'].includes(visibility)) {
-      return res.status(400).json({ message: 'La visibilidad debe ser private o public' });
+    // Usar name como título si title no está presente
+    const boardTitle = title || name;
+    
+    if (!boardTitle) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'El título del tablero es requerido'
+      });
     }
-
+    
+    // Crear el tablero
     const board = await Board.create({
-      name,
+      title: boardTitle,
       description,
-      visibility: visibility || 'private',
-      owner_id
+      creator_id
     }, { transaction });
-
-    // Crear el registro de miembro para el propietario
-    await BoardMember.create({
-      board_id: board.id,
-      user_id: owner_id,
-      role: 'owner'
-    }, { transaction });
-
-    // Crear listas por defecto
-    const defaultLists = [
-      { name: 'Por hacer', position: 0 },
-      { name: 'En progreso', position: 1 },
-      { name: 'Completado', position: 2 }
-    ];
-
-    await Promise.all(defaultLists.map(list => 
-      List.create({
-        ...list,
-        board_id: board.id
-      }, { transaction })
-    ));
-
-    const boardWithDetails = await Board.findByPk(board.id, {
-      include: [
-        { model: User, as: 'boardOwner', attributes: ['id', 'full_name', 'email', 'avatar'] },
-        { model: List, as: 'lists', order: [['position', 'ASC']] }
-      ],
-      transaction
-    });
-
+    
+    console.log('Tablero creado:', board.toJSON());
+    
+    // Agregar miembros si se proporcionan
+    if (member_ids && member_ids.length > 0) {
+      await board.addBoardMembers(member_ids, { transaction });
+      console.log('Miembros agregados al tablero');
+    }
+    
     await transaction.commit();
-    res.status(201).json(boardWithDetails);
+    
+    // Obtener el tablero creado con sus relaciones
+    const createdBoard = await Board.findByPk(board.id, {
+      include: [
+        {
+          model: User,
+          as: 'boardCreator',
+          attributes: ['id', 'full_name', 'email']
+        },
+        {
+          model: User,
+          as: 'boardMembers',
+          attributes: ['id', 'full_name', 'email'],
+          through: { attributes: [] }
+        }
+      ]
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Tablero creado correctamente',
+      data: createdBoard
+    });
   } catch (error) {
     await transaction.rollback();
-    res.status(500).json({ message: 'Error al crear tablero', error: error.message });
+    console.error('Error al crear tablero:', error);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear el tablero',
+      error: error.message
+    });
   }
 };
 
 // Actualizar un tablero
 const updateBoard = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
   try {
-    const { name, description, visibility } = req.body;
-    const board = await Board.findByPk(req.params.id);
-
-    if (!board) {
-      return res.status(404).json({ message: 'Tablero no encontrado' });
-    }
-
-    // Validaciones básicas
-    if (visibility && !['private', 'public'].includes(visibility)) {
-      return res.status(400).json({ message: 'La visibilidad debe ser private o public' });
-    }
-
-    await board.update({ 
-      name: name || board.name,
-      description: description || board.description,
-      visibility: visibility || board.visibility
-    });
+    const { id } = req.params;
+    const { title, description, member_ids } = req.body;
+    console.log(`Actualizando tablero ${id}:`, { title, description, member_ids });
     
-    const updatedBoard = await Board.findByPk(board.id, {
+    const board = await Board.findByPk(id);
+    if (!board) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Tablero no encontrado'
+      });
+    }
+    
+    // Actualizar datos básicos
+    await board.update({
+      title: title || board.title,
+      description: description || board.description
+    }, { transaction });
+    
+    console.log('Datos básicos actualizados');
+    
+    // Actualizar miembros si se proporcionan
+    if (member_ids) {
+      await board.setBoardMembers(member_ids, { transaction });
+      console.log('Miembros actualizados');
+    }
+    
+    await transaction.commit();
+    
+    // Obtener el tablero actualizado con sus relaciones
+    const updatedBoard = await Board.findByPk(id, {
       include: [
-        { model: User, as: 'boardOwner', attributes: ['id', 'full_name', 'email', 'avatar'] }
+        {
+          model: User,
+          as: 'boardCreator',
+          attributes: ['id', 'full_name', 'email']
+        },
+        {
+          model: User,
+          as: 'boardMembers',
+          attributes: ['id', 'full_name', 'email'],
+          through: { attributes: [] }
+        }
       ]
     });
-
-    res.json(updatedBoard);
+    
+    res.json({
+      success: true,
+      message: 'Tablero actualizado correctamente',
+      data: updatedBoard
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error al actualizar tablero', error: error.message });
+    await transaction.rollback();
+    console.error('Error al actualizar tablero:', error);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar el tablero',
+      error: error.message
+    });
   }
 };
 
 // Eliminar un tablero
 const deleteBoard = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
   try {
-    const board = await Board.findByPk(req.params.id);
+    const { id } = req.params;
+    console.log(`Eliminando tablero ${id}`);
     
+    const board = await Board.findByPk(id);
     if (!board) {
-      return res.status(404).json({ message: 'Tablero no encontrado' });
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Tablero no encontrado'
+      });
     }
-
-    await board.destroy();
-    res.json({ message: 'Tablero eliminado correctamente' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error al eliminar tablero', error: error.message });
-  }
-};
-
-// Obtener tableros por usuario
-const getBoardsByUser = async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    const boards = await Board.findAll({
-      include: [
-        { 
-          model: User, 
-          as: 'boardOwner', 
-          attributes: ['id', 'full_name', 'email', 'avatar'],
-          where: { is_active: true }
-        },
-        {
-          model: BoardMember,
-          as: 'boardMemberships',
-          where: { user_id: userId },
-          required: true,
-          include: [
-            { 
-              model: User, 
-              as: 'memberUser', 
-              attributes: ['id', 'full_name', 'email', 'avatar'],
-              where: { is_active: true }
-            }
-          ]
-        }
-      ]
+    
+    // Eliminar el tablero
+    await board.destroy({ transaction });
+    console.log('Tablero eliminado');
+    
+    await transaction.commit();
+    
+    res.json({
+      success: true,
+      message: 'Tablero eliminado correctamente'
     });
-    res.json(boards);
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener tableros del usuario', error: error.message });
+    await transaction.rollback();
+    console.error('Error al eliminar tablero:', error);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar el tablero',
+      error: error.message
+    });
   }
 };
 
 module.exports = {
-  getBoards,
+  getAllBoards,
   getBoardById,
   createBoard,
   updateBoard,
-  deleteBoard,
-  getBoardsByUser
+  deleteBoard
 }; 

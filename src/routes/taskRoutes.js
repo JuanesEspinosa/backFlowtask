@@ -10,7 +10,7 @@ router.get('/list/:listId', taskController.getTasksByList);
 // Obtener una tarea por ID
 router.get('/:id', taskController.getTaskById);
 
-// Crear una tarea
+// Crear una nueva tarea
 router.post('/list/:listId', taskController.createTask);
 
 // Actualizar una tarea
@@ -19,10 +19,10 @@ router.put('/:id', taskController.updateTask);
 // Eliminar una tarea
 router.delete('/:id', taskController.deleteTask);
 
-// Reordenar tareas dentro de una lista
+// Reordenar tareas
 router.put('/list/:listId/reorder', taskController.reorderTasks);
 
-// Mover una tarea a otra lista
+// Mover tarea entre listas
 router.put('/:id/move', taskController.moveTask);
 
 // Asignar usuarios a una tarea

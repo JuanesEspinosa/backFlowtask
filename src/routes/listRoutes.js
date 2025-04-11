@@ -10,8 +10,8 @@ router.get('/board/:boardId', listController.getListsByBoard);
 // Obtener una lista por ID
 router.get('/:id', listController.getListById);
 
-// Crear una lista personalizada
-router.post('/board/:boardId', listController.createCustomList);
+// Crear una nueva lista
+router.post('/board/:boardId', listController.createList);
 
 // Actualizar una lista
 router.put('/:id', listController.updateList);

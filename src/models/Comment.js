@@ -1,26 +1,29 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-const User = require('./User');
 
-const Board = sequelize.define('Board', {
+const Comment = sequelize.define('Comment', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true
   },
-  title: {
-    type: DataTypes.STRING,
+  content: {
+    type: DataTypes.TEXT,
     allowNull: false
   },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  creator_id: {
+  user_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'users',
+      model: 'Users',
+      key: 'id'
+    }
+  },
+  task_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Tasks',
       key: 'id'
     }
   },
@@ -33,16 +36,10 @@ const Board = sequelize.define('Board', {
     defaultValue: DataTypes.NOW
   }
 }, {
-  tableName: 'boards',
+  tableName: 'Comments',
   timestamps: true,
   createdAt: 'created_at',
   updatedAt: 'updated_at'
 });
 
-// Relación con el usuario propietario
-Board.belongsTo(User, {
-  foreignKey: 'creator_id',
-  as: 'creator'
-});
-
-module.exports = Board; 
+module.exports = Comment; 

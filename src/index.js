@@ -1,51 +1,77 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const morgan = require('morgan');
-const { initModels } = require('./models');
+const { sequelize, connectDB } = require('./config/database');
+const User = require('./models/User');
+const Board = require('./models/Board');
+const List = require('./models/List');
+const Task = require('./models/Task');
+const Comment = require('./models/Comment');
+const Tag = require('./models/Tag');
+
+// Cargar asociaciones después de importar los modelos
+require('./models/associations');
+
 const userRoutes = require('./routes/userRoutes');
-const authRoutes = require('./routes/authRoutes');
 const boardRoutes = require('./routes/boardRoutes');
+const authRoutes = require('./routes/authRoutes');
 const boardMemberRoutes = require('./routes/boardMemberRoutes');
+// const listRoutes = require('./routes/listRoutes');
+// const taskRoutes = require('./routes/taskRoutes');
+// const commentRoutes = require('./routes/commentRoutes');
+// const tagRoutes = require('./routes/tagRoutes');
 
 const app = express();
 
-const startServer = async () => {
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Middleware para logging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
+// Rutas
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/boards', boardRoutes);
+app.use('/api/board-members', boardMemberRoutes);
+// app.use('/api/lists', listRoutes);
+// app.use('/api/tasks', taskRoutes);
+// app.use('/api/comments', commentRoutes);
+// app.use('/api/tags', tagRoutes);
+
+// Ruta de prueba
+app.get('/test', (req, res) => {
+  res.json({ message: 'API funcionando correctamente' });
+});
+
+// Sincronizar base de datos y levantar servidor
+const PORT = process.env.PORT || 3000;
+
+async function initializeServer() {
   try {
-    // Inicializar modelos y conectar a la base de datos
-    await initModels();
-
-    // Middlewares
-    app.use(cors());
-    app.use(morgan('dev'));
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
-
-    // Rutas
-    app.get('/', (req, res) => {
-      res.json({ message: 'Bienvenido a la API' });
-    });
-
-    // Rutas de usuarios
-    app.use('/api/users', userRoutes);
-
-    // Rutas de autenticación
-    app.use('/api/auth', authRoutes);
-
-    // Rutas de tableros
-    app.use('/api/boards', boardRoutes);
-
-    // Rutas de miembros del tablero
-    app.use('/api/board-members', boardMemberRoutes);
-
-    const PORT = process.env.PORT || 5000;
+    // Conectar y sincronizar la base de datos
+    await connectDB();
+    
+    // Verificar si hay usuarios
+    const userCount = await User.count();
+    console.log(`Número de usuarios en la base de datos: ${userCount}`);
+    
     app.listen(PORT, () => {
-      console.log(`Servidor corriendo en el puerto ${PORT}`);
+      console.log(`Servidor corriendo en http://localhost:${PORT}`);
+      console.log('Rutas disponibles:');
+      console.log('- GET /api/users');
+      console.log('- GET /api/boards');
+      console.log('- GET /test');
     });
   } catch (error) {
-    console.error('Error al iniciar el servidor:', error);
+    console.error('Error al inicializar el servidor:', error);
+    console.error('Detalles del error:', error.original || error);
     process.exit(1);
   }
-};
+}
 
-startServer(); 
+initializeServer(); 

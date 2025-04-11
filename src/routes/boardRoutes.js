@@ -1,20 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const boardController = require('../controllers/boardController');
+const { 
+  getAllBoards,
+  getBoardById,
+  createBoard,
+  updateBoard,
+  deleteBoard
+} = require('../controllers/boardController');
 
 // Rutas para tableros
 
-// obtener todos los tableros
-router.get('/', boardController.getBoards);
-// obtener todos los tableros de un usuario
-router.get('/user/:userId', boardController.getBoardsByUser);
-// obtener un tablero por id
-router.get('/:id', boardController.getBoardById);
-// crear un tablero
-router.post('/', boardController.createBoard);
-// actualizar un tablero
-router.put('/:id', boardController.updateBoard);
-// eliminar un tablero
-router.delete('/:id', boardController.deleteBoard);
+// Obtener todos los tableros
+router.get('/', getAllBoards);
+
+// Obtener un tablero específico
+router.get('/:id', getBoardById);
+
+// Crear un nuevo tablero
+router.post('/', createBoard);
+
+// Actualizar un tablero
+router.put('/:id', updateBoard);
+
+// Eliminar un tablero
+router.delete('/:id', deleteBoard);
 
 module.exports = router; 

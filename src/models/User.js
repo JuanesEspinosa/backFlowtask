@@ -29,18 +29,22 @@ const User = sequelize.define('User', {
   },
   is_active: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true,
-    allowNull: false
+    allowNull: false,
+    defaultValue: true
   },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
+  },
+  updated_at: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   }
 }, {
-  tableName: 'users',
+  tableName: 'Users',
   timestamps: true,
   createdAt: 'created_at',
-  updatedAt: false
+  updatedAt: 'updated_at'
 });
 
 module.exports = User; 
