@@ -7,6 +7,7 @@ const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const boardRoutes = require('./routes/boardRoutes');
 const boardMemberRoutes = require('./routes/boardMemberRoutes');
+const taskAssignmentRoutes = require('./routes/taskAssignmentRoutes');
 
 const app = express();
 
@@ -35,6 +36,9 @@ app.use('/api/boards', boardRoutes);
 
 // Rutas de miembros del tablero
 app.use('/api/board-members', boardMemberRoutes);
+
+// Rutas de asignaciones de tareas
+app.use('/api/task-assignments', taskAssignmentRoutes);
 
 // Puerto
 const PORT = process.env.PORT || 3000;

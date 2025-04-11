@@ -74,7 +74,8 @@ const addBoardMember = async (req, res) => {
 // Actualizar el rol de un miembro
 const updateMemberRole = async (req, res) => {
   try {
-    const { board_id, user_id } = req.params;
+    const boardId = req.params.boardId;
+    const userId = req.params.userId;
     const { role } = req.body;
 
     // Validaciones básicas
@@ -84,7 +85,7 @@ const updateMemberRole = async (req, res) => {
 
     // Verificar si el miembro existe
     const member = await BoardMember.findOne({
-      where: { board_id, user_id }
+      where: { board_id: boardId, user_id: userId }
     });
 
     if (!member) {
@@ -113,11 +114,12 @@ const updateMemberRole = async (req, res) => {
 // Eliminar un miembro del tablero
 const removeBoardMember = async (req, res) => {
   try {
-    const { board_id, user_id } = req.params;
+    const boardId = req.params.boardId;
+    const userId = req.params.userId;
 
     // Verificar si el miembro existe
     const member = await BoardMember.findOne({
-      where: { board_id, user_id }
+      where: { board_id: boardId, user_id: userId }
     });
 
     if (!member) {

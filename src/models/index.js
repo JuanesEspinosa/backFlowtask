@@ -3,6 +3,8 @@ const User = require('./User');
 const Board = require('./Board');
 const BoardMember = require('./BoardMember');
 const List = require('./List');
+const Task = require('./Task');
+const TaskAssignment = require('./TaskAssignment');
 
 const initModels = async () => {
   try {
@@ -71,6 +73,36 @@ const initModels = async () => {
       as: 'parentBoard'
     });
 
+    // Asociaciones List - Task
+    List.hasMany(Task, {
+      foreignKey: 'list_id',
+      as: 'tasks'
+    });
+    Task.belongsTo(List, {
+      foreignKey: 'list_id',
+      as: 'parentList'
+    });
+
+    // Asociaciones Task - TaskAssignment
+    Task.hasMany(TaskAssignment, {
+      foreignKey: 'task_id',
+      as: 'assignments'
+    });
+    TaskAssignment.belongsTo(Task, {
+      foreignKey: 'task_id',
+      as: 'assignedTask'
+    });
+
+    // Asociaciones User - TaskAssignment
+    User.hasMany(TaskAssignment, {
+      foreignKey: 'user_id',
+      as: 'taskAssignments'
+    });
+    TaskAssignment.belongsTo(User, {
+      foreignKey: 'user_id',
+      as: 'assignedUser'
+    });
+
     console.log('Asociaciones configuradas correctamente');
   } catch (error) {
     console.error('Error al conectar con PostgreSQL:', error);
@@ -84,5 +116,7 @@ module.exports = {
   Board,
   BoardMember,
   List,
+  Task,
+  TaskAssignment,
   initModels
 }; 
