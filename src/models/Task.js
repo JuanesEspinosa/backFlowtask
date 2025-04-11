@@ -29,7 +29,7 @@ const Task = sequelize.define('Task', {
     defaultValue: 0
   },
   list_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.UUID,
     allowNull: false,
     references: {
       model: 'lists',

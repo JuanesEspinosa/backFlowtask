@@ -23,14 +23,7 @@ const getListsByBoard = async (req, res) => {
             }]
         });
 
-        // Transformar los IDs para que sean relativos al tablero
-        const transformedLists = lists.map((list, index) => {
-            const plainList = list.get({ plain: true });
-            plainList.display_id = index + 1;
-            return plainList;
-        });
-
-        res.json(transformedLists);
+        res.json(lists);
     } catch (error) {
         res.status(500).json({ message: 'Error al obtener las listas', error: error.message });
     }
@@ -52,18 +45,7 @@ const getListById = async (req, res) => {
             return res.status(404).json({ message: 'Lista no encontrada' });
         }
 
-        // Obtener el número de lista dentro del tablero
-        const listsBeforeCurrent = await List.count({
-            where: {
-                board_id: list.board_id,
-                id: { [sequelize.Op.lt]: list.id }
-            }
-        });
-
-        const plainList = list.get({ plain: true });
-        plainList.display_id = listsBeforeCurrent + 1;
-
-        res.json(plainList);
+        res.json(list);
     } catch (error) {
         res.status(500).json({ message: 'Error al obtener la lista', error: error.message });
     }
@@ -97,14 +79,6 @@ const createCustomList = async (req, res) => {
             board_id: boardId
         });
 
-        // Obtener el número de lista dentro del tablero
-        const listsBeforeCurrent = await List.count({
-            where: {
-                board_id: boardId,
-                id: { [sequelize.Op.lt]: list.id }
-            }
-        });
-
         const listWithDetails = await List.findByPk(list.id, {
             include: [{
                 model: Board,
@@ -113,10 +87,7 @@ const createCustomList = async (req, res) => {
             }]
         });
 
-        const plainList = listWithDetails.get({ plain: true });
-        plainList.display_id = listsBeforeCurrent + 1;
-
-        res.status(201).json(plainList);
+        res.status(201).json(listWithDetails);
     } catch (error) {
         res.status(500).json({ message: 'Error al crear la lista', error: error.message });
     }
@@ -135,14 +106,6 @@ const updateList = async (req, res) => {
 
         await list.update({ name, position });
 
-        // Obtener el número de lista dentro del tablero
-        const listsBeforeCurrent = await List.count({
-            where: {
-                board_id: list.board_id,
-                id: { [sequelize.Op.lt]: list.id }
-            }
-        });
-
         const updatedList = await List.findByPk(id, {
             include: [{
                 model: Board,
@@ -151,10 +114,7 @@ const updateList = async (req, res) => {
             }]
         });
 
-        const plainList = updatedList.get({ plain: true });
-        plainList.display_id = listsBeforeCurrent + 1;
-
-        res.json(plainList);
+        res.json(updatedList);
     } catch (error) {
         res.status(500).json({ message: 'Error al actualizar la lista', error: error.message });
     }
@@ -208,14 +168,7 @@ const reorderLists = async (req, res) => {
             }]
         });
 
-        // Transformar los IDs para que sean relativos al tablero
-        const transformedLists = lists.map((list, index) => {
-            const plainList = list.get({ plain: true });
-            plainList.display_id = index + 1;
-            return plainList;
-        });
-
-        res.json(transformedLists);
+        res.json(lists);
     } catch (error) {
         res.status(500).json({ message: 'Error al reordenar las listas', error: error.message });
     }

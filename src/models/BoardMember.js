@@ -5,12 +5,12 @@ const Board = require('./Board');
 
 const BoardMember = sequelize.define('BoardMember', {
   id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
   },
   board_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.UUID,
     allowNull: false,
     references: {
       model: 'boards',
@@ -18,7 +18,7 @@ const BoardMember = sequelize.define('BoardMember', {
     }
   },
   user_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.UUID,
     allowNull: false,
     references: {
       model: 'users',
@@ -28,6 +28,11 @@ const BoardMember = sequelize.define('BoardMember', {
   role: {
     type: DataTypes.ENUM('owner', 'admin', 'member'),
     defaultValue: 'member',
+    allowNull: false
+  },
+  status: {
+    type: DataTypes.ENUM('active', 'inactive'),
+    defaultValue: 'active',
     allowNull: false
   },
   joined_at: {

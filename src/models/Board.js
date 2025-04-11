@@ -1,12 +1,11 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-const User = require('./User');
 
 const Board = sequelize.define('Board', {
   id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
   },
   name: {
     type: DataTypes.STRING,
@@ -17,14 +16,23 @@ const Board = sequelize.define('Board', {
     allowNull: true
   },
   owner_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
+    type: DataTypes.UUID,
+    allowNull: true,
     field: 'owner_id',
     references: {
       model: 'users',
       key: 'id'
     },
     onDelete: 'SET NULL'
+  },
+  project_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'projects',
+      key: 'id'
+    },
+    onDelete: 'CASCADE'
   },
   visibility: {
     type: DataTypes.ENUM('public', 'private'),
@@ -47,10 +55,5 @@ const Board = sequelize.define('Board', {
   updatedAt: false
 });
 
-// Relación con el usuario propietario
-Board.belongsTo(User, {
-  foreignKey: 'owner_id',
-  as: 'owner'
-});
-
+// Asociaciones se definirán en models/index.js
 module.exports = Board; 

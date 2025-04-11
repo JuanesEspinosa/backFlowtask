@@ -1,46 +1,50 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
-const User = sequelize.define('User', {
+const Project = sequelize.define('Project', {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
-  full_name: {
+  name: {
     type: DataTypes.STRING,
     allowNull: false
   },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-    validate: {
-      isEmail: true
-    }
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: false
   },
-  password: {
+  category: {
     type: DataTypes.STRING,
     allowNull: false
   },
-  avatar: {
+  other_category: {
     type: DataTypes.STRING,
     allowNull: true
   },
-  is_active: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
+  color: {
+    type: DataTypes.STRING,
     allowNull: false
+  },
+  owner_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
   },
   created_at: {
     type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
+    defaultValue: DataTypes.NOW,
+    allowNull: false
   }
 }, {
-  tableName: 'users',
+  tableName: 'projects',
   timestamps: true,
   createdAt: 'created_at',
   updatedAt: false
 });
 
-module.exports = User; 
+module.exports = Project; 

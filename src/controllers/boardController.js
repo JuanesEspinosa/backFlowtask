@@ -11,7 +11,7 @@ const getBoards = async (req, res) => {
       include: [
         { 
           model: User, 
-          as: 'boardOwner', 
+          as: 'owner', 
           attributes: ['id', 'full_name', 'email', 'avatar'],
           where: { is_active: true }
         }
@@ -30,21 +30,16 @@ const getBoardById = async (req, res) => {
       include: [
         { 
           model: User, 
-          as: 'boardOwner', 
+          as: 'owner', 
           attributes: ['id', 'full_name', 'email', 'avatar'],
           where: { is_active: true }
         },
         { 
-          model: BoardMember, 
-          as: 'boardMemberships',
-          include: [
-            { 
-              model: User, 
-              as: 'memberUser', 
-              attributes: ['id', 'full_name', 'email', 'avatar'],
-              where: { is_active: true }
-            }
-          ]
+          model: User,
+          as: 'boardMembers',
+          attributes: ['id', 'full_name', 'email', 'avatar'],
+          through: { attributes: ['role'] },
+          where: { is_active: true }
         },
         {
           model: List,
@@ -59,6 +54,7 @@ const getBoardById = async (req, res) => {
     }
     res.json(board);
   } catch (error) {
+    console.error('Error al obtener tablero:', error);
     res.status(500).json({ message: 'Error al obtener tablero', error: error.message });
   }
 };
@@ -68,11 +64,15 @@ const createBoard = async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
-    const { name, description, visibility, owner_id } = req.body;
+    const { name, description, visibility, owner_id, project_id } = req.body;
     
     // Validaciones básicas
     if (!name) {
       return res.status(400).json({ message: 'El nombre es requerido' });
+    }
+    
+    if (!project_id) {
+      return res.status(400).json({ message: 'El project_id es requerido' });
     }
     
     if (visibility && !['private', 'public'].includes(visibility)) {
@@ -83,15 +83,18 @@ const createBoard = async (req, res) => {
       name,
       description,
       visibility: visibility || 'private',
-      owner_id
+      owner_id,
+      project_id
     }, { transaction });
 
-    // Crear el registro de miembro para el propietario
-    await BoardMember.create({
-      board_id: board.id,
-      user_id: owner_id,
-      role: 'owner'
-    }, { transaction });
+    // Crear el registro de miembro para el propietario si existe
+    if (owner_id) {
+      await BoardMember.create({
+        board_id: board.id,
+        user_id: owner_id,
+        role: 'owner'
+      }, { transaction });
+    }
 
     // Crear listas por defecto
     const defaultLists = [
@@ -109,8 +112,16 @@ const createBoard = async (req, res) => {
 
     const boardWithDetails = await Board.findByPk(board.id, {
       include: [
-        { model: User, as: 'boardOwner', attributes: ['id', 'full_name', 'email', 'avatar'] },
-        { model: List, as: 'lists', order: [['position', 'ASC']] }
+        { 
+          model: User, 
+          as: 'owner',
+          attributes: ['id', 'full_name', 'email', 'avatar']
+        },
+        {
+          model: List,
+          as: 'lists',
+          order: [['position', 'ASC']]
+        }
       ],
       transaction
     });
@@ -119,7 +130,11 @@ const createBoard = async (req, res) => {
     res.status(201).json(boardWithDetails);
   } catch (error) {
     await transaction.rollback();
-    res.status(500).json({ message: 'Error al crear tablero', error: error.message });
+    console.error('Error al crear tablero:', error);
+    res.status(500).json({ 
+      message: 'Error al crear tablero',
+      error: error.message
+    });
   }
 };
 
@@ -146,7 +161,7 @@ const updateBoard = async (req, res) => {
     
     const updatedBoard = await Board.findByPk(board.id, {
       include: [
-        { model: User, as: 'boardOwner', attributes: ['id', 'full_name', 'email', 'avatar'] }
+        { model: User, as: 'owner', attributes: ['id', 'full_name', 'email', 'avatar'] }
       ]
     });
 
@@ -180,28 +195,25 @@ const getBoardsByUser = async (req, res) => {
       include: [
         { 
           model: User, 
-          as: 'boardOwner', 
+          as: 'owner', 
           attributes: ['id', 'full_name', 'email', 'avatar'],
           where: { is_active: true }
         },
         {
-          model: BoardMember,
-          as: 'boardMemberships',
-          where: { user_id: userId },
-          required: true,
-          include: [
-            { 
-              model: User, 
-              as: 'memberUser', 
-              attributes: ['id', 'full_name', 'email', 'avatar'],
-              where: { is_active: true }
-            }
-          ]
+          model: User,
+          as: 'boardMembers',
+          attributes: ['id', 'full_name', 'email', 'avatar'],
+          through: { attributes: ['role'] },
+          where: { 
+            id: userId,
+            is_active: true 
+          }
         }
       ]
     });
     res.json(boards);
   } catch (error) {
+    console.error('Error al obtener tableros del usuario:', error);
     res.status(500).json({ message: 'Error al obtener tableros del usuario', error: error.message });
   }
 };

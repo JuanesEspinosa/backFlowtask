@@ -3,9 +3,9 @@ const { sequelize } = require('../config/database');
 
 const List = sequelize.define('List', {
   id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
   },
   name: {
     type: DataTypes.STRING,
@@ -16,7 +16,7 @@ const List = sequelize.define('List', {
     allowNull: false
   },
   board_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.UUID,
     allowNull: false,
     references: {
       model: 'boards',

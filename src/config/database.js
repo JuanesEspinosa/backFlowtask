@@ -1,6 +1,4 @@
 const { Sequelize } = require('sequelize');
-const path = require('path');
-const fs = require('fs').promises;
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -33,19 +31,7 @@ const connectDB = async () => {
   }
 };
 
-const fixSequences = async () => {
-  try {
-    const sqlPath = path.join(__dirname, '..', 'database', 'fix-sequences.sql');
-    const sqlContent = await fs.readFile(sqlPath, 'utf8');
-    await sequelize.query(sqlContent);
-    console.log('Secuencias corregidas correctamente');
-  } catch (error) {
-    console.error('Error al corregir secuencias:', error);
-  }
-};
-
 module.exports = {
   sequelize,
-  connectDB,
-  fixSequences
+  connectDB
 }; 

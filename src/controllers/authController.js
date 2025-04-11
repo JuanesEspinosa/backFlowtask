@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
 // Registro de usuarios
@@ -23,11 +24,19 @@ const register = async (req, res) => {
       avatar
     });
 
+    // Generar token JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
+
     // Excluir la contraseña de la respuesta
     const { password: _, ...userWithoutPassword } = user.toJSON();
     res.status(201).json({
       message: 'Usuario registrado exitosamente',
-      user: userWithoutPassword
+      user: userWithoutPassword,
+      token
     });
   } catch (error) {
     res.status(500).json({ message: 'Error al registrar usuario', error: error.message });
@@ -51,11 +60,19 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
 
+    // Generar token JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
+
     // Excluir la contraseña de la respuesta
     const { password: _, ...userWithoutPassword } = user.toJSON();
     res.json({
       message: 'Login exitoso',
-      user: userWithoutPassword
+      user: userWithoutPassword,
+      token
     });
   } catch (error) {
     res.status(500).json({ message: 'Error al iniciar sesión', error: error.message });

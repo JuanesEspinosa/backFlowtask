@@ -5,9 +5,9 @@ const User = require('./User');
 
 const TaskAssignment = sequelize.define('TaskAssignment', {
     id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
     },
     task_id: {
         type: DataTypes.UUID,
@@ -18,7 +18,7 @@ const TaskAssignment = sequelize.define('TaskAssignment', {
         }
     },
     user_id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: false,
         references: {
             model: 'users',
