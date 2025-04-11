@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const boardRoutes = require('./routes/boardRoutes');
 const boardMemberRoutes = require('./routes/boardMemberRoutes');
 const taskAssignmentRoutes = require('./routes/taskAssignmentRoutes');
+const listRoutes = require('./routes/listRoutes');
 
 const app = express();
 
@@ -36,6 +37,9 @@ app.use('/api/boards', boardRoutes);
 
 // Rutas de miembros del tablero
 app.use('/api/board-members', boardMemberRoutes);
+
+// Rutas de listas
+app.use('/api/lists', listRoutes);
 
 // Rutas de asignaciones de tareas
 app.use('/api/task-assignments', taskAssignmentRoutes);
